@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wang.Mapper.UserMapper">
+
+
+    <!--开启本mapper下的namespace = com.wang.Mapper.UserMapper的二级缓存
+        type:指定cache接口的实现类的类型，mybatis默认使用PerpetualCache
+        要和ehcache整合，需要配置type为ehcache实现cache接口的类型-->
+    <cache ></cache>
+
+    <!--定义sql片段
+        id:sql片段唯一标识
+
+        经验：是基于单表来定义sql片段，这样的sql片段可重用性高
+        在sql片段中不要包括where
+    -->
+    <sql id="query_users_where">
+            <if test="userCustorm != null">
+                <if test="userCustorm.sex != null and userCustorm.sex !=''">
+                    and user.sex =  #{userCustorm.sex}
+                </if>
+                <if test="userCustorm.username != null and userCustorm.username != ''">
+                    and user.username  like '%${userCustorm.username}%'
+                </if>
+            </if>
+    </sql>
+
+    <sql id="query_users_list">
+        <if test="ids != null">
+            <!--使用foreach遍历传入ids
+                collection:绑定对象的集合属性
+                item:每个遍历生成对象
+                open:开始遍历时拼接的串
+                close:结束遍历时拼接的串
+                separator:遍历的2个对象中需要拼接的串
+                -->
+            <!--AND(id = 1 OR id = 12 OR id = 16)-->
+            <foreach collection="ids" item="user_id" open="AND (" close=")" separator="OR">
+                  id = #{user_id}
+            </foreach>
+        </if>
+    </sql>
+
+
+    <!-- 定义resultMap
+         将select id id_,username username_ from user 与User类中的属性
+         做一个映射关系
+         type:resultMap最终映射的java对象类型，可以使用别名
+         id:对resultMap的唯一标示
+    -->
+    <resultMap type="user" id="userResultMap">
+        <!--id标示查询结果中唯一标识
+            column标示查询出来的列名
+            property：pojo中的属性名
+            最终resultMap对column和property做一个映射关系（对应关系）
+            -->
+        <id column="id_" property="id"></id>
+        <!--result对普通名映射定义-->
+        <result column="username_" property="username"></result>
+
+    </resultMap>
+
+
+    <!-- 使用resultType进行输出映射，只有查询出来的列名和pojo属性名一致
+         该列才可以映射成功
+         如果查询出来的列名和pojo的属性全部不一样，则没有创建pojo对象
+         只要查询出来的列名和pojo的属性有一个一样，则会创建pojo对象-->
+    <select id = "findUserList" parameterType="UserQueryVo" resultType="UserCustorm">
+        <!-- 也就是说 select后面的列名必须与pojo属性名一致-->
+        select * from user
+    <where>
+        <!--引用sql片段的id,如果refid指定的id不在本mapper文件中，需要
+            添加namespace-->
+        <include refid="query_users_where"></include>
+        <include refid="query_users_list"></include>
+    </where>
+    </select>
+
+    <!-- 用户信息综合查询总数 -->
+    <!--<select id="findUserCount" parameterType="com.wang.po.UserQueryVo" resultType="int">-->
+        <!--select-->
+    <!--</select>-->
+
+
+    <!-- 使用resultMap运行输出映射
+         resultMap:指定定义的resultMap的id,如果这个resultMap在其他的mapper文件，前面需要加namespace -->
+    <select id="findUserListResultMap" parameterType="int" resultMap="userResultMap">
+        select id id_,username username_ from user where id = #{value}
+    </select>
+
+    <select id="findUserById" parameterType="int" resultType="com.wang.po.User">
+        select * from user where id=#{value}
+    </select>
+
+    <select id="findUserByName" parameterType="java.lang.String" resultType="com.wang.po.User">
+        select * from user where username like '%${value}%'
+    </select>
+
+    <insert id="insertUser" parameterType="com.wang.po.User">
+        insert into user(id,username,birthday,sex,adress) value(#{id},#{username},#{birthday},#{sex},#{adress})
+    </insert>
+
+    <delete id="deleteUser" parameterType="java.lang.Integer">
+        delete from user where id = #{id}
+    </delete>
+
+    <update id="updateUser" parameterType="com.wang.po.User">
+        update user set username=#{username},birthday=#{birthday},sex=#{sex},address=#{address}
+        where id=#{id}
+    </update>
+
+</mapper>
